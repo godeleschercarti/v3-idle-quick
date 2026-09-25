@@ -150,6 +150,16 @@ h2 { margin-bottom: 0; font-size: 1.28rem; font-weight: 600; }
 .building-price strong { display: block; color: var(--gold-2); font-size: 1rem; font-weight: 600; }
 .building-price small { display: block; margin-top: 5px; color: var(--green); font: 700 .7rem/1.2 system-ui, sans-serif; }
 
+.chart-panel { margin-top: 10px; padding-bottom: 14px; }
+.chart-heading { align-items: end; margin-bottom: 10px; }
+.chart-total { flex: 0 0 auto; text-align: right; }
+.chart-total span { display: block; margin-bottom: 4px; color: var(--muted); font: 700 .67rem/1.2 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .1em; }
+.chart-total strong { color: var(--gold-2); font-size: 1.25rem; font-weight: 500; }
+.chart-wrap { position: relative; width: 100%; height: 290px; overflow: hidden; border: 1px solid var(--line-soft); border-radius: 7px; background: #0e1915; }
+#gdpChart { display: block; width: 100%; height: 100%; }
+.chart-caption { display: flex; justify-content: space-between; gap: 14px; margin-top: 8px; color: var(--muted); font: .72rem/1.35 system-ui, sans-serif; }
+.chart-caption span:last-child { color: var(--green); font-weight: 700; }
+
 .lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .compact-panel { min-height: 164px; }
 .achievement-list { display: grid; gap: 7px; }
@@ -210,6 +220,10 @@ dialog::backdrop { background: rgba(0,0,0,.72); }
   .building-title-row { display: block; }
   .building-owned { display: inline-block; margin-top: 4px; }
   .construct-button { min-height: 150px; }
+  .chart-heading { display: block; }
+  .chart-total { margin-top: 10px; text-align: left; }
+  .chart-wrap { height: 230px; }
+  .chart-caption { align-items: flex-start; }
   .toast { right: 9px; bottom: 9px; }
 }
 

@@ -6,6 +6,9 @@
   const SAVE_VERSION = 1;
   const OFFLINE_CAP_SECONDS = 8 * 60 * 60;
   const AUTOSAVE_MS = 10_000;
+  const HISTORY_SAMPLE_MS = 5_000;
+  const HISTORY_MAX_POINTS = 240;
+  const CHART_RENDER_MS = 300;
 
   const BUILDINGS = [
     { id: 'logging', name: 'Logging Camp', icon: '🌲', baseCost: 25, baseGps: 0.6, blurb: 'Timber, paperwork and the beginnings of an economy.' },
@@ -35,12 +38,14 @@
     constructionXp: 0,
     buyMode: '1',
     buildings: Object.fromEntries(BUILDINGS.map(b => [b.id, 0])),
+    gdpHistory: [],
     lastSeen: Date.now()
   });
 
   let state = defaultState();
   let lastTick = performance.now();
   let lastRender = 0;
+  let lastChartRender = 0;
   let toastTimer = null;
 
   const els = {
@@ -49,6 +54,9 @@
     clickValue: document.getElementById('clickValue'),
     industryCount: document.getElementById('industryCount'),
     globalMultiplier: document.getElementById('globalMultiplier'),
+    totalGdpValue: document.getElementById('totalGdpValue'),
+    gdpChart: document.getElementById('gdpChart'),
+    chartRange: document.getElementById('chartRange'),
     constructionLevel: document.getElementById('constructionLevel'),
     constructGain: document.getElementById('constructGain'),
     constructButton: document.getElementById('constructButton'),
@@ -89,6 +97,30 @@
 
   function formatNumber(value) {
     return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(Math.floor(value));
+  }
+
+  function formatChartMoney(value) {
+    if (!Number.isFinite(value) || value <= 0) return '£0';
+    const units = [[1e15, 'Q'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+    for (const [size, suffix] of units) {
+      if (value >= size) {
+        const scaled = value / size;
+        const digits = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+        return `£${scaled.toFixed(digits)}${suffix}`;
+      }
+    }
+    return `£${Math.round(value)}`;
+  }
+
+  function formatChartDuration(milliseconds) {
+    const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 48) return `${hours}h ${minutes % 60}m`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
   }
 
   function xpNeeded(level = state.constructionLevel) {
@@ -141,6 +173,159 @@
     if (!Number.isFinite(amount) || amount <= 0) return;
     state.gdp += amount;
     state.totalGdp += amount;
+  }
+
+  function recordHistory(force = false) {
+    if (!Array.isArray(state.gdpHistory)) state.gdpHistory = [];
+    const now = Date.now();
+    const history = state.gdpHistory;
+    const last = history[history.length - 1];
+
+    if (!last) {
+      history.push([now, state.totalGdp]);
+      return;
+    }
+
+    if (!force && now - last[0] < HISTORY_SAMPLE_MS) return;
+
+    if (force && now - last[0] < 750) {
+      last[1] = state.totalGdp;
+    } else {
+      history.push([now, state.totalGdp]);
+    }
+
+    if (history.length > HISTORY_MAX_POINTS) {
+      const compacted = [history[0]];
+      for (let i = 2; i < history.length - 1; i += 2) compacted.push(history[i]);
+      compacted.push(history[history.length - 1]);
+      state.gdpHistory = compacted;
+    }
+  }
+
+  function niceChartMax(value) {
+    if (!Number.isFinite(value) || value <= 0) return 10;
+    const exponent = Math.floor(Math.log10(value));
+    const power = Math.pow(10, exponent);
+    const fraction = value / power;
+    const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+    return niceFraction * power;
+  }
+
+  function drawGdpChart(force = false) {
+    if (!els.gdpChart) return;
+    const perfNow = performance.now();
+    if (!force && perfNow - lastChartRender < CHART_RENDER_MS) return;
+    lastChartRender = perfNow;
+
+    const canvas = els.gdpChart;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 20 || rect.height < 20) return;
+
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const pixelWidth = Math.max(1, Math.round(rect.width * dpr));
+    const pixelHeight = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    const styles = getComputedStyle(document.documentElement);
+    const lineColour = styles.getPropertyValue('--gold-2').trim() || '#f1dc9f';
+    const gridColour = styles.getPropertyValue('--line-soft').trim() || '#273b32';
+    const mutedColour = styles.getPropertyValue('--muted').trim() || '#9fb2a8';
+    const fillColour = 'rgba(216, 189, 120, 0.10)';
+
+    const stored = Array.isArray(state.gdpHistory) ? state.gdpHistory : [];
+    const now = Date.now();
+    const points = stored.map(point => [point[0], point[1]]);
+    if (!points.length) points.push([now, state.totalGdp]);
+    const last = points[points.length - 1];
+    if (now > last[0]) points.push([now, state.totalGdp]);
+    else last[1] = state.totalGdp;
+
+    const pad = { left: 66, right: 14, top: 15, bottom: 30 };
+    const plotW = Math.max(1, rect.width - pad.left - pad.right);
+    const plotH = Math.max(1, rect.height - pad.top - pad.bottom);
+    const firstTime = points[0][0];
+    const lastTime = points[points.length - 1][0];
+    const timeSpan = Math.max(HISTORY_SAMPLE_MS * 2, lastTime - firstTime);
+    const xMin = lastTime - timeSpan;
+    const maxObserved = Math.max(10, ...points.map(point => point[1]), state.totalGdp);
+    const yMax = niceChartMax(maxObserved * 1.05);
+
+    const xFor = t => pad.left + ((t - xMin) / timeSpan) * plotW;
+    const yFor = v => pad.top + plotH - (Math.max(0, v) / yMax) * plotH;
+
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillStyle = mutedColour;
+    ctx.strokeStyle = gridColour;
+    ctx.lineWidth = 1;
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i <= 4; i += 1) {
+      const ratio = i / 4;
+      const y = pad.top + plotH - ratio * plotH;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(rect.width - pad.right, y);
+      ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(formatChartMoney(yMax * ratio), pad.left - 8, y);
+    }
+
+    const elapsed = Math.max(0, lastTime - firstTime);
+    const xTicks = [0, 0.5, 1];
+    ctx.textBaseline = 'alphabetic';
+    xTicks.forEach((ratio, index) => {
+      const x = pad.left + ratio * plotW;
+      ctx.textAlign = index === 0 ? 'left' : index === xTicks.length - 1 ? 'right' : 'center';
+      ctx.fillText(formatChartDuration(Math.max(0, elapsed * ratio)), x, rect.height - 8);
+    });
+
+    if (points.length >= 2) {
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = Math.max(pad.left, Math.min(rect.width - pad.right, xFor(point[0])));
+        const y = yFor(point[1]);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      const endX = Math.max(pad.left, Math.min(rect.width - pad.right, xFor(points[points.length - 1][0])));
+      ctx.lineTo(endX, pad.top + plotH);
+      ctx.lineTo(Math.max(pad.left, Math.min(rect.width - pad.right, xFor(points[0][0]))), pad.top + plotH);
+      ctx.closePath();
+      ctx.fillStyle = fillColour;
+      ctx.fill();
+
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = Math.max(pad.left, Math.min(rect.width - pad.right, xFor(point[0])));
+        const y = yFor(point[1]);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = lineColour;
+      ctx.lineWidth = 2.25;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    } else {
+      const x = rect.width - pad.right;
+      const y = yFor(state.totalGdp);
+      ctx.fillStyle = lineColour;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (els.chartRange) {
+      els.chartRange.textContent = elapsed > 0 ? `${formatChartDuration(elapsed)} of recorded economic history` : 'Economic history begins now';
+    }
   }
 
   function construct(event) {
@@ -291,6 +476,7 @@
     els.clickValue.textContent = formatMoney(click);
     els.industryCount.textContent = formatNumber(totalBuildings());
     els.globalMultiplier.textContent = `×${milestoneMultiplier().toFixed(2)}`;
+    if (els.totalGdpValue) els.totalGdpValue.textContent = formatMoney(state.totalGdp);
     els.constructionLevel.textContent = `Level ${state.constructionLevel}`;
     els.constructGain.textContent = `+${formatMoney(click)} GDP`;
     const needed = xpNeeded();
@@ -312,6 +498,7 @@
 
     renderBuildings();
     renderAchievements();
+    drawGdpChart(force);
   }
 
   function sanitizeSave(data) {
@@ -326,6 +513,14 @@
     clean.lastSeen = safeNumber(data.lastSeen) || Date.now();
     for (const building of BUILDINGS) {
       clean.buildings[building.id] = Math.max(0, Math.floor(safeNumber(data.buildings?.[building.id])));
+    }
+    if (Array.isArray(data.gdpHistory)) {
+      clean.gdpHistory = data.gdpHistory
+        .filter(point => Array.isArray(point) && point.length >= 2)
+        .map(point => [safeNumber(point[0]), safeNumber(point[1])])
+        .filter(point => point[0] > 0)
+        .sort((a, b) => a[0] - b[0])
+        .slice(-HISTORY_MAX_POINTS);
     }
     return clean;
   }
@@ -358,6 +553,7 @@
   }
 
   function saveGame(showMessage = false) {
+    recordHistory(true);
     state.lastSeen = Date.now();
     const payload = encodeSave(state);
     let saved = false;
@@ -365,7 +561,11 @@
       localStorage.setItem(SAVE_KEY, payload);
       saved = true;
     } catch (_) {}
-    setCookie(COOKIE_KEY, payload);
+
+    // Cookies are deliberately kept small. Gameplay state is preserved in the
+    // fallback, while detailed graph history remains in localStorage/export saves.
+    const cookieState = { ...state, gdpHistory: [] };
+    setCookie(COOKIE_KEY, encodeSave(cookieState));
     els.saveIndicator.textContent = saved ? 'Saved' : 'Cookie save';
     if (showMessage) showToast('Economy saved. The bureaucracy approves.');
   }
@@ -457,6 +657,7 @@
     lastTick = now;
     const gain = gps() * dt;
     addGdp(gain);
+    recordHistory(false);
     render(false);
     requestAnimationFrame(tick);
   }
@@ -479,8 +680,10 @@
   });
   window.addEventListener('beforeunload', () => saveGame(false));
   window.setInterval(() => saveGame(false), AUTOSAVE_MS);
+  window.addEventListener('resize', () => drawGdpChart(true));
 
   loadGame();
+  recordHistory(true);
   initBuildings();
   initAchievements();
   render(true);

@@ -33,3 +33,6 @@ All economy numbers are near the top of `game.js`:
 - `xpNeeded()` controls construction-sector level pacing.
 
 No Victoria 3 art, music or other game assets are included.
+
+
+- Live GDP history chart tracking cumulative GDP over time, saved with the game.
