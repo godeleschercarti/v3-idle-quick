@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#12211c" />
+  <meta name="description" content="A tiny Victoria 3-inspired idle game about construction sectors and line going up." />
+  <title>Victoria 3: Quick Idle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">A deeply serious macroeconomic simulation</p>
+        <h1>Victoria 3: Quick Idle</h1>
+        <p class="subtitle">Build construction sectors. Inflate GDP. Industrialise irresponsibly.</p>
+      </div>
+      <div class="save-indicator" id="saveIndicator" aria-live="polite">Saved</div>
+    </header>
+
+    <section class="stats-grid" aria-label="National statistics">
+      <article class="stat-card primary">
+        <span class="stat-label">GDP</span>
+        <strong id="gdpValue">£0</strong>
+        <span id="gdpPerSecond">+£0 / sec</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Construction</span>
+        <strong id="clickValue">£1</strong>
+        <span>GDP per click</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Industrial Output</span>
+        <strong id="industryCount">0</strong>
+        <span>buildings owned</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">GDP Multiplier</span>
+        <strong id="globalMultiplier">×1.00</strong>
+        <span>from milestones</span>
+      </article>
+    </section>
+
+    <section class="main-grid">
+      <section class="construction-panel panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">State Construction Queue</p>
+            <h2>Construction Sector</h2>
+          </div>
+          <span class="level-badge" id="constructionLevel">Level 1</span>
+        </div>
+
+        <button id="constructButton" class="construct-button" type="button">
+          <span class="hammer" aria-hidden="true">⚒</span>
+          <span>Expand the Economy</span>
+          <small id="constructGain">+£1 GDP</small>
+        </button>
+
+        <div class="progress-wrap" aria-label="Construction experience progress">
+          <div class="progress-copy">
+            <span>Construction expertise</span>
+            <span id="xpText">0 / 25</span>
+          </div>
+          <div class="progress-track"><div id="xpBar" class="progress-bar"></div></div>
+          <p>Every level permanently improves manual construction. Clicking remains useful, but industry eventually does the real work.</p>
+        </div>
+
+        <div class="milestone-box">
+          <span>Next GDP milestone</span>
+          <strong id="nextMilestone">£10K</strong>
+          <small id="milestoneEffect">Industrial output ×1.20</small>
+        </div>
+      </section>
+
+      <section class="industry-panel panel">
+        <div class="section-heading store-heading">
+          <div>
+            <p class="eyebrow">Private Investment Pool</p>
+            <h2>Industry</h2>
+          </div>
+          <div class="buy-tabs" aria-label="Purchase amount">
+            <button class="buy-mode active" data-mode="1" type="button">×1</button>
+            <button class="buy-mode" data-mode="10" type="button">×10</button>
+            <button class="buy-mode" data-mode="max" type="button">Max</button>
+          </div>
+        </div>
+        <div id="buildingList" class="building-list"></div>
+      </section>
+    </section>
+
+    <section class="lower-grid">
+      <section class="panel compact-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">National Development</p>
+            <h2>Industrialisation</h2>
+          </div>
+        </div>
+        <div id="achievementList" class="achievement-list"></div>
+      </section>
+
+      <section class="panel compact-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Bureaucracy</p>
+            <h2>Save Management</h2>
+          </div>
+        </div>
+        <div class="save-actions">
+          <button id="saveButton" type="button">Save now</button>
+          <button id="exportButton" type="button">Export save</button>
+          <button id="importButton" type="button">Import save</button>
+          <button id="resetButton" class="danger" type="button">Reset economy</button>
+        </div>
+        <p class="fine-print">Autosaves every 10 seconds and whenever you leave the page. Saves are stored locally in your browser, with a cookie fallback. Offline production is capped at 8 hours.</p>
+      </section>
+    </section>
+
+    <footer>
+      Fan-made parody project. Not affiliated with Paradox Interactive. No Victoria 3 assets are used.
+    </footer>
+  </main>
+
+  <dialog id="textDialog">
+    <form method="dialog" class="dialog-card">
+      <h2 id="dialogTitle">Save</h2>
+      <p id="dialogHelp"></p>
+      <textarea id="saveText" rows="8" spellcheck="false"></textarea>
+      <div class="dialog-actions">
+        <button value="cancel" type="submit">Cancel</button>
+        <button id="dialogConfirm" value="default" type="button">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="game.js"></script>
+</body>
+</html>
