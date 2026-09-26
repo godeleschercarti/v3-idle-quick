@@ -1,38 +1,33 @@
 # Victoria 3: Quick Idle
 
-A tiny Victoria 3-inspired idle/clicker parody. It is deliberately lightweight: no build system, no frameworks and no external assets.
+A small, dependency-free Victoria 3-inspired idle game built for GitHub Pages.
 
-## Run locally
+## Run it
 
-Open `index.html` in a browser. The game is entirely client-side.
+Open `index.html` directly, or serve/upload the folder as a static site. There is no build step and no external JavaScript dependency.
 
-## Put it on GitHub Pages
+For GitHub Pages, upload the contents of this folder to a repository and publish the repository root from your chosen branch.
 
-1. Create a new GitHub repository.
-2. Upload `index.html`, `style.css` and `game.js` to the repository root.
-3. In GitHub, open **Settings → Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**.
-5. Select the `main` branch and `/ (root)`, then save.
+## Current game loop
 
-GitHub will publish the game at the Pages URL shown in that settings screen.
+- Click the Construction Sector to generate GDP and level up manual construction.
+- Buy seven increasingly expensive industries: Logging Camps, Iron Mines, Coal Mines, Tooling Workshops, Steel Mills, Glassworks and Automotive Industries.
+- Industry generates passive GDP. GDP milestones multiply output.
+- The National Accounts graph records cumulative GDP produced, so spending GDP never makes the line fall.
+- Three company slots cost £500K, £10M and £100M.
+- A chartered company starts with its own building portfolio, accumulates private cash, pays 40% of profits as dividends and automatically buys the next building in its visible queue whenever it can afford it.
+- State and company construction use the same building-price curve, so autonomous company expansion makes subsequent buildings more expensive for everyone.
 
-## Saving
+The company roster uses flavored-company names from Victoria 3 and adapts their industries to this intentionally tiny seven-building economy. It currently includes Klabin Irmãos & Cia., New Russia Company Ltd., Société anonyme John Cockerill, Glasfabrik Ludwig Moser & Söhne, Carnegie Steel Co. and Ford Motor Company.
 
-The game autosaves every 10 seconds and when the page is hidden or closed. It uses `localStorage` as the main save mechanism and also writes the same compact save string to a first-party cookie as a fallback. Export/import is included for manual backups or moving the save between browsers.
+## Saves
 
-Offline production is credited for up to 8 hours.
+The save key remains `vic3QuickIdleSave_v1`, so saves from the earlier version remain compatible. Old saves simply begin with all three company slots locked.
 
-## Gameplay tuning
+The game autosaves every 10 seconds and on page exit. Normal saves use `localStorage`; a smaller cookie fallback preserves gameplay state if local storage is unavailable. Graph history is omitted from the cookie fallback to keep it below cookie size limits. Export/import can be used to move a save between browsers or devices.
 
-All economy numbers are near the top of `game.js`:
-
-- `BUILDINGS` controls building names, starting prices and GDP/sec.
-- Building costs grow by `1.155` per purchase.
-- `MILESTONES` controls global production multipliers.
-- `clickPower()` controls manual construction scaling.
-- `xpNeeded()` controls construction-sector level pacing.
-
-No Victoria 3 art, music or other game assets are included.
+Offline production is capped at eight hours. Company retained earnings, dividends and automatic expansion are simulated during offline progress as well.
 
 
-- Live GDP history chart tracking cumulative GDP over time, saved with the game.
+### Company economics
+Company profit is derived from the same GDP/sec values as normal buildings. Companies pay 40% of profit as dividends and retain 60% for automatic expansion. Diversified companies pay 55% of current market construction prices; single-industry specialists pay 35% and receive a 25% profit bonus. Company purchases still increase the shared market building count and therefore raise future prices for both the player and other companies.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#12211c" />
+  <meta name="theme-color" content="#21160f" />
   <meta name="description" content="A tiny Victoria 3-inspired idle game about construction sectors and line going up." />
   <title>Victoria 3: Quick Idle</title>
   <link rel="stylesheet" href="style.css" />
@@ -14,9 +14,11 @@
       <div>
         <p class="eyebrow">A deeply serious macroeconomic simulation</p>
         <h1>Victoria 3: Quick Idle</h1>
-        <p class="subtitle">Build construction sectors. Inflate GDP. Industrialise irresponsibly.</p>
+        <p class="subtitle">Build construction sectors. Charter companies. Inflate GDP.</p>
       </div>
-      <div class="save-indicator" id="saveIndicator" aria-live="polite">Saved</div>
+      <div class="header-tools">
+        <div class="save-indicator" id="saveIndicator" aria-live="polite">Saved</div>
+      </div>
     </header>
 
     <section class="stats-grid" aria-label="National statistics">
@@ -31,9 +33,9 @@
         <span>GDP per click</span>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Industrial Output</span>
+        <span class="stat-label">Industrial Base</span>
         <strong id="industryCount">0</strong>
-        <span>buildings owned</span>
+        <span>buildings in economy</span>
       </article>
       <article class="stat-card">
         <span class="stat-label">GDP Multiplier</span>
@@ -42,7 +44,7 @@
       </article>
     </section>
 
-    <section class="main-grid">
+    <section class="dashboard-grid">
       <section class="construction-panel panel">
         <div class="section-heading">
           <div>
@@ -64,13 +66,18 @@
             <span id="xpText">0 / 25</span>
           </div>
           <div class="progress-track"><div id="xpBar" class="progress-bar"></div></div>
-          <p>Every level permanently improves manual construction. Clicking remains useful, but industry eventually does the real work.</p>
+          <p>Manual construction improves with use. Eventually private industry does most of the number-go-up.</p>
         </div>
 
         <div class="milestone-box">
           <span>Next GDP milestone</span>
           <strong id="nextMilestone">£10K</strong>
           <small id="milestoneEffect">Industrial output ×1.20</small>
+        </div>
+
+        <div class="mini-achievements">
+          <p class="eyebrow">National Development</p>
+          <div id="achievementList" class="achievement-list"></div>
         </div>
       </section>
 
@@ -88,60 +95,74 @@
         </div>
         <div id="buildingList" class="building-list"></div>
       </section>
-    </section>
 
-    <section class="panel chart-panel" aria-labelledby="gdpChartTitle">
-      <div class="section-heading chart-heading">
-        <div>
-          <p class="eyebrow">National Accounts</p>
-          <h2 id="gdpChartTitle">Total GDP Accumulated Over Time</h2>
-        </div>
-        <div class="chart-total">
-          <span>Total produced</span>
-          <strong id="totalGdpValue">£0</strong>
-        </div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="gdpChart" role="img" aria-label="Line chart of total GDP accumulated over time"></canvas>
-      </div>
-      <div class="chart-caption">
-        <span id="chartRange">Since this graph began</span>
-        <span>Line goes up.</span>
-      </div>
-    </section>
-
-    <section class="lower-grid">
-      <section class="panel compact-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">National Development</p>
-            <h2>Industrialisation</h2>
+      <div class="side-stack">
+        <section class="companies-panel panel" aria-labelledby="companiesTitle">
+          <div class="section-heading companies-heading">
+            <div>
+              <p class="eyebrow">Charters of Commerce</p>
+              <h2 id="companiesTitle">Companies</h2>
+            </div>
+            <div class="dividend-summary">
+              <span>Dividends</span>
+              <strong id="companyDividendValue">+£0/s</strong>
+            </div>
           </div>
-        </div>
-        <div id="achievementList" class="achievement-list"></div>
-      </section>
+          <p class="company-intro">Company profit scales with the output of its buildings. Firms pay 40% of profit as dividends and reinvest the rest automatically. They buy at discounted market prices, but every company building still pushes market prices up for everyone.</p>
+          <div id="companySlots" class="company-slots"></div>
+        </section>
 
-      <section class="panel compact-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Bureaucracy</p>
-            <h2>Save Management</h2>
+        <section class="panel chart-panel" aria-labelledby="gdpChartTitle">
+          <div class="section-heading chart-heading">
+            <div>
+              <p class="eyebrow">National Accounts</p>
+              <h2 id="gdpChartTitle">Total GDP</h2>
+            </div>
+            <div class="chart-total">
+              <span>Accumulated</span>
+              <strong id="totalGdpValue">£0</strong>
+            </div>
           </div>
-        </div>
-        <div class="save-actions">
-          <button id="saveButton" type="button">Save now</button>
-          <button id="exportButton" type="button">Export save</button>
-          <button id="importButton" type="button">Import save</button>
-          <button id="resetButton" class="danger" type="button">Reset economy</button>
-        </div>
-        <p class="fine-print">Autosaves every 10 seconds and whenever you leave the page. Saves are stored locally in your browser, with a cookie fallback. Offline production is capped at 8 hours.</p>
-      </section>
+          <div class="chart-wrap">
+            <canvas id="gdpChart" role="img" aria-label="Line chart of total GDP accumulated over time"></canvas>
+          </div>
+          <div class="chart-caption">
+            <span id="chartRange">Economic history begins now</span>
+            <span>Line goes up.</span>
+          </div>
+        </section>
+      </div>
     </section>
 
-    <footer>
-      Fan-made parody project. Not affiliated with Paradox Interactive. No Victoria 3 assets are used.
-    </footer>
+    <section class="utility-bar panel">
+      <div>
+        <p class="eyebrow">Bureaucracy</p>
+        <span class="utility-note">Autosaves every 10 seconds. Offline production is capped at 8 hours.</span>
+      </div>
+      <div class="save-actions">
+        <button id="saveButton" type="button">Save</button>
+        <button id="exportButton" type="button">Export</button>
+        <button id="importButton" type="button">Import</button>
+        <button id="resetButton" class="danger" type="button">Reset</button>
+      </div>
+    </section>
+
+    <footer>Fan-made parody project. Not affiliated with Paradox Interactive. No Victoria 3 assets are used.</footer>
   </main>
+
+  <dialog id="companyDialog">
+    <form method="dialog" class="dialog-card company-dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Company Charter</p>
+          <h2 id="companyDialogTitle">Establish a company</h2>
+        </div>
+        <button class="icon-button" value="cancel" type="submit" aria-label="Close">×</button>
+      </div>
+      <p class="dialog-copy">Choose once. Companies are deliberately not perfectly balanced; industrial history was not a competitive multiplayer ladder.</p>
+      <div id="companyChoices" class="company-choices"></div>
+    </form>
+  </dialog>
 
   <dialog id="textDialog">
     <form method="dialog" class="dialog-card">
